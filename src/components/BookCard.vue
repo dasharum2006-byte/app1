@@ -1,120 +1,143 @@
 <template>
-  <div class="book-card" :class="{ completed: book.completed }">
-    <div class="book-info">
-      <h3>{{ book.title }}</h3>
-      <p class="author">{{ book.author }}</p>
-      <span class="genre">{{ book.genre }}</span>
+  <div class="card h-100 shadow-sm book-card" :class="{ 
+    'border-success': book.completed,
+    'border-warning': book.favorite && !book.completed,
+    'completed': book.completed
+  }">
+    <!-- Обложка книги -->
+    <img
+      v-if="book.imageUrl"
+      :src="book.imageUrl"
+      class="card-img-top book-cover"
+      :alt="book.title"
+      @error="handleImageError"
+    />
+    <div v-else class="card-img-top book-cover-placeholder">
+      <i class="bi bi-book display-1"></i>
     </div>
-    <div class="book-actions">
-      <div v-if="book.completed" class="rating">
-        <span
-          v-for="star in 5"
-          :key="star"
-          @click="$emit('rate', star)"
+
+    <div class="card-body">
+      <!-- Заголовок и избранное -->
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <h5 class="card-title mb-0">{{ book.title }}</h5>
+        <button
+          @click="$emit('toggle-favorite')"
+          class="btn btn-link p-0"
+          :class="book.favorite ? 'text-warning' : 'text-muted'"
         >
-          {{ star <= book.rating ? '★' : '☆' }}
+          <i :class="book.favorite ? 'bi bi-heart-fill' : 'bi bi-heart'"></i>
+        </button>
+      </div>
+
+      <!-- Автор и жанр -->
+      <p class="text-muted mb-1">
+        <i class="bi bi-person"></i> {{ book.author }}
+      </p>
+      <span v-if="book.genre" class="badge bg-secondary mb-2">
+        {{ book.genre }}
+      </span>
+
+      <!-- Описание -->
+      <p v-if="book.description" class="card-text small text-muted">
+        {{ book.description }}
+      </p>
+
+      <!-- Рейтинг -->
+      <div v-if="book.completed" class="mb-3">
+        <div class="rating">
+          <span
+            v-for="star in 5"
+            :key="star"
+            @click="$emit('rate', star)"
+            class="star"
+            :class="{ rated: star <= book.rating }"
+          >
+            <i :class="star <= book.rating ? 'bi bi-star-fill' : 'bi bi-star'"></i>
+          </span>
+          <span class="ms-2 text-muted small">({{ book.rating }}/5)</span>
+        </div>
+      </div>
+
+      <!-- Статус -->
+      <div class="mb-3">
+        <span :class="book.completed ? 'badge bg-success' : 'badge bg-secondary'">
+          <i :class="book.completed ? 'bi bi-check-circle' : 'bi bi-clock'"></i>
+          {{ book.completed ? 'Прочитано' : 'Не прочитано' }}
         </span>
       </div>
-      <button
-        @click="$emit('toggle')"
-        :class="[
-          'btn',
-          book.completed ? 'btn-secondary' : 'btn-primary'
-        ]"
-      >
-        {{ book.completed ? 'Прочитано' : 'Отметить прочитанной' }}
-      </button>
-      <button @click="$emit('delete')" class="btn btn-danger">
-        ✕
-      </button>
+    </div>
+
+    <div class="card-footer bg-transparent">
+      <div class="btn-group w-100">
+        <button
+          @click="$emit('toggle')"
+          :class="book.completed ? 'btn btn-outline-secondary' : 'btn btn-success'"
+        >
+          <i :class="book.completed ? 'bi bi-arrow-counterclockwise' : 'bi bi-check-lg'"></i>
+          {{ book.completed ? 'Не прочитано' : 'Прочитано' }}
+        </button>
+        <button
+          @click="$emit('delete')"
+          class="btn btn-outline-danger"
+        >
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 defineProps(['book'])
-defineEmits(['toggle', 'delete', 'rate'])
+defineEmits(['toggle', 'delete', 'rate', 'toggle-favorite'])
+
+const handleImageError = (e) => {
+  e.target.style.display = 'none'
+}
 </script>
 
 <style scoped>
 .book-card {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
 }
+
+.book-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
 .book-card.completed {
-  background: #f0f7f0;
-  opacity: 0.8;
+  opacity: 0.9;
 }
-.book-info {
-  flex: 1;
+
+.book-cover {
+  height: 250px;
+  object-fit: cover;
+  background: #f8f9fa;
 }
-.book-info h3 {
-  margin-bottom: 4px;
-  color: #333;
-}
-.author {
-  color: #666;
-  font-size: 0.9em;
-  margin-bottom: 4px;
-}
-.genre {
-  background: #e0e0e0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.8em;
-}
-.book-actions {
+
+.book-cover-placeholder {
+  height: 250px;
   display: flex;
-  gap: 8px;
   align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
-.rating {
-  display: flex;
-  gap: 2px;
-}
-.rating span {
-  font-size: 20px;
+
+.star {
+  font-size: 1.5rem;
   cursor: pointer;
-  color: gold;
+  color: #dee2e6;
+  transition: all 0.2s;
 }
-.rating span:hover {
+
+.star.rated {
+  color: #076aff;
+}
+
+.star:hover {
   transform: scale(1.2);
-}
-.btn {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background 0.3s;
-}
-.btn-primary {
-  background: #4CAF50;
-  color: white;
-}
-.btn-primary:hover {
-  background: #45a049;
-}
-.btn-secondary {
-  background: #2196F3;
-  color: white;
-}
-.btn-secondary:hover {
-  background: #1e87db;
-}
-.btn-danger {
-  background: #f44336;
-  color: white;
-  padding: 8px 12px;
-}
-.btn-danger:hover {
-  background: #da190b;
 }
 </style>

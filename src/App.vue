@@ -1,29 +1,56 @@
 <template>
-  <div class="app">
-    <header>
-      <h1>Менеджер книг</h1>
-      <p>Управляй своей библиотекой</p>
+  <div class="container mt-5">
+    <header class="text-center mb-5">
+      <h1 class="display-4 text-primary">
+        <i class="bi bi-bookshelf"></i> Менеджер книг
+      </h1>
+      <p class="lead text-muted">Управляй своей библиотекой</p>
     </header>
+
     <main>
+      <!-- Форма добавления книги -->
       <AddBookForm @add-book="addBook" />
+
+      <!-- Фильтры, поиск и сортировка -->
       <BookFilters
         v-model:searchQuery="searchQuery"
         v-model:filter="currentFilter"
+        v-model:sortBy="sortBy"
         :books="books"
       />
-      <div v-if="filteredBooks.length === 0" class="empty-state">
-        <p>Книги не найдены :(</p>
-        <p>Добавьте первую книгу или измените параметры поиска</p>
+
+      <!-- Статистика -->
+      <div class="alert alert-info mb-4">
+        <i class="bi bi-graph-up"></i>
+        <strong>Статистика:</strong> 
+        Всего: {{ books.length }} | 
+        Прочитано: {{ completedCount }} | 
+        В избранном: {{ favoritesCount }} |
+        Осталось: {{ books.length - completedCount }}
       </div>
-      <div v-else class="books-list">
-        <BookCard
-          v-for="book in filteredBooks"
+
+      <!-- Сообщение, если книг нет -->
+      <div v-if="filteredAndSortedBooks.length === 0" class="text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <p class="lead mt-3">Книги не найдены</p>
+        <p class="text-muted">Добавьте первую книгу или измените параметры поиска</p>
+      </div>
+
+      <!-- Список книг -->
+      <div v-else class="row">
+        <div
+          v-for="book in filteredAndSortedBooks"
           :key="book.id"
-          :book="book"
-          @toggle="toggleBook(book.id)"
-          @delete="deleteBook(book.id)"
-          @rate="rateBook(book.id, $event)"
-        />
+          class="col-md-6 col-lg-4 mb-4"
+        >
+          <BookCard
+            :book="book"
+            @toggle="toggleBook(book.id)"
+            @delete="deleteBook(book.id)"
+            @rate="rateBook(book.id, $event)"
+            @toggle-favorite="toggleFavorite(book.id)"
+          />
+        </div>
       </div>
     </main>
   </div>
@@ -35,19 +62,21 @@ import AddBookForm from './components/AddBookForm.vue'
 import BookFilters from './components/BookFilters.vue'
 import BookCard from './components/BookCard.vue'
 
-// Состояние книг с загрузкой из localStorage
+// Состояние книг
 const books = ref([])
-// Загрузка сохраненных книг
+
+// Загрузка из localStorage
 const savedBooks = localStorage.getItem('books')
 if (savedBooks) {
   books.value = JSON.parse(savedBooks)
 }
 
-// Состояния фильтрации
+// Фильтры и сортировка
 const currentFilter = ref('all')
 const searchQuery = ref('')
+const sortBy = ref('date') // 'date', 'title', 'rating'
 
-// Сохранение изменений
+// Сохранение в localStorage
 watch(books, (newBooks) => {
   localStorage.setItem('books', JSON.stringify(newBooks))
 }, { deep: true })
@@ -58,12 +87,14 @@ const addBook = (bookData) => {
     id: Date.now(),
     ...bookData,
     completed: false,
-    rating: 0
+    rating: 0,
+    favorite: false,
+    createdAt: new Date().toISOString()
   }
   books.value.push(newBook)
 }
 
-// Переключение статуса
+// Переключение статуса прочтения
 const toggleBook = (id) => {
   const book = books.value.find(b => b.id === id)
   if (book) {
@@ -89,69 +120,74 @@ const deleteBook = (id) => {
   }
 }
 
-// Фильтрация и поиск книг
-const filteredBooks = computed(() => {
-  return books.value
-    .filter(book => {
-      if (currentFilter.value === 'unread') return !book.completed
-      if (currentFilter.value === 'read') return book.completed
-      return true
-    })
-    .filter(book => {
-      if (!searchQuery.value) return true
-      const query = searchQuery.value.toLowerCase()
-      return book.title.toLowerCase().includes(query) ||
-             book.author.toLowerCase().includes(query)
-    })
+// Избранное
+const toggleFavorite = (id) => {
+  const book = books.value.find(b => b.id === id)
+  if (book) {
+    book.favorite = !book.favorite
+  }
+}
+
+// Статистика
+const completedCount = computed(() => 
+  books.value.filter(b => b.completed).length
+)
+
+const favoritesCount = computed(() => 
+  books.value.filter(b => b.favorite).length
+)
+
+// Фильтрация и сортировка
+const filteredAndSortedBooks = computed(() => {
+  let result = [...books.value]
+
+  // Фильтр по статусу
+  if (currentFilter.value === 'unread') {
+    result = result.filter(book => !book.completed)
+  } else if (currentFilter.value === 'read') {
+    result = result.filter(book => book.completed)
+  } else if (currentFilter.value === 'favorites') {
+    result = result.filter(book => book.favorite)
+  }
+
+  // Поиск
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(book => 
+      book.title.toLowerCase().includes(query) ||
+      book.author.toLowerCase().includes(query) ||
+      (book.description && book.description.toLowerCase().includes(query))
+    )
+  }
+
+  // Сортировка
+  result.sort((a, b) => {
+    if (sortBy.value === 'title') {
+      return a.title.localeCompare(b.title)
+    } else if (sortBy.value === 'rating') {
+      return b.rating - a.rating
+    } else if (sortBy.value === 'date') {
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    }
+    return 0
+  })
+
+  return result
 })
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f0f2f5;
-  line-height: 1.6;
-}
-.app {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  min-height: 100vh;
+  padding-bottom: 50px;
 }
-header h1 {
-  font-size: 2.5em;
-  margin-bottom: 5px;
-}
-main {
-  background: white;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-.empty-state {
-  text-align: center;
+
+.container {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
   padding: 40px;
-  color: #999;
-  font-size: 1.2em;
-}
-.empty-state p:first-child {
-  font-size: 3em;
-  margin-bottom: 20px;
-}
-.books-list {
-  margin-top: 20px;
+  margin-top: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 </style>

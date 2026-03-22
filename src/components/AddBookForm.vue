@@ -1,83 +1,99 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="add-form">
-    <h2>Добавить новую книгу</h2>
-    <div class="form-group">
-      <input v-model="formData.title" type="text" placeholder="Название книги" required />
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">
+        <i class="bi bi-plus-circle"></i> Добавить новую книгу
+      </h5>
     </div>
-    <div class="form-group">
-      <input v-model="formData.author" type="text" placeholder="Автор" required />
+    <div class="card-body">
+      <form @submit.prevent="handleSubmit">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Название книги *</label>
+            <input
+              v-model="formData.title"
+              type="text"
+              class="form-control"
+              placeholder="Введите название"
+              required
+            />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Автор *</label>
+            <input
+              v-model="formData.author"
+              type="text"
+              class="form-control"
+              placeholder="Введите автора"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Жанр</label>
+            <select v-model="formData.genre" class="form-select">
+              <option value="">Выберите жанр</option>
+              <option value="Роман">Роман</option>
+              <option value="Фантастика">Фантастика</option>
+              <option value="Детектив">Детектив</option>
+              <option value="Научная">Научная</option>
+              <option value="Поэзия">Поэзия</option>
+              <option value="Биография">Биография</option>
+              <option value="Другое">Другое</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">URL обложки</label>
+            <input
+              v-model="formData.imageUrl"
+              type="url"
+              class="form-control"
+              <input v-model="formData.imageUrl" placeholder="harrypotter.jpg" />
+            />
+            <div class="form-text">Оставьте пустым, если нет фото</div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Описание</label>
+          <textarea
+            v-model="formData.description"
+            class="form-control"
+            rows="3"
+            placeholder="Краткое описание книги..."
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-check-lg"></i> Добавить книгу
+        </button>
+      </form>
     </div>
-    <div class="form-group">
-      <select v-model="formData.genre" required>
-        <option value="">Выберите жанр</option>
-        <option value="Роман">Роман</option>
-        <option value="Фантастика">Фантастика</option>
-        <option value="Детектив">Детектив</option>
-        <option value="Научная">Научная</option>
-        <option value="Поэзия">Поэзия</option>
-      </select>
-    </div>
-    <button type="submit" class="btn-submit">Добавить книгу</button>
-  </form>
+  </div>
 </template>
 
 <script setup>
 import { reactive } from 'vue'
+
 const emit = defineEmits(['add-book'])
+
 const formData = reactive({
   title: '',
   author: '',
-  genre: ''
+  genre: '',
+  description: '',
+  imageUrl: ''
 })
+
 const handleSubmit = () => {
   emit('add-book', { ...formData })
   // Очистка формы
   formData.title = ''
   formData.author = ''
   formData.genre = ''
+  formData.description = ''
+  formData.imageUrl = ''
 }
 </script>
-
-<style scoped>
-.add-form {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-}
-.add-form h2 {
-  margin-bottom: 15px;
-  color: #333;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1em;
-}
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #4CAF50;
-}
-.btn-submit {
-  width: 100%;
-  padding: 12px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1em;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-.btn-submit:hover {
-  background: #45a049;
-}
-</style>
